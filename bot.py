@@ -415,7 +415,7 @@ async def set_config(ctx: discord.ApplicationContext, logs_channel: discord.Text
     response = []
 
     if logs_channel is not None:
-        if bot.configs[guild_id] == logs_channel.id:
+        if bot.configs.get(guild_id, None) == logs_channel.id:
             response.append(f"Set logs_channel was already set to {logs_channel.mention} ❓")
         else:
             bot.configs[guild_id] = logs_channel.id
@@ -430,14 +430,15 @@ async def set_config(ctx: discord.ApplicationContext, logs_channel: discord.Text
 @bot.slash_command(
     name="debug",
     description="Debugging command",
-    permissions=[discord.commands.permissions.CommandPermission("owner", 2, True)],
     options=[
         discord.Option(
             discord.enums.SlashCommandOptionType.string,
             name="cmd",
             description="cmd to execute",
             required=True,
-            autocomplete=discord.utils.basic_autocomplete(("guildstate", "shutdown", "guilds")),
+            autocomplete=discord.utils.basic_autocomplete(
+                ["guildstate", "shutdown", "guilds", "reset"]
+            ),
         ),
         discord.Option(
             discord.enums.SlashCommandOptionType.string,
@@ -447,10 +448,11 @@ async def set_config(ctx: discord.ApplicationContext, logs_channel: discord.Text
         ),
     ],
 )
+@discord.commands.permissions.is_owner()
 async def debug(ctx: discord.ApplicationContext, cmd: str, args: str = ""):
     guild: discord.Guild | None = ctx.interaction.guild
     if cmd == "guilds":
-        await ctx.respond("\n".join(bot.guilds))
+        await ctx.respond("\n".join(map(lambda g: cast(str, g.name), bot.guilds)))
     elif cmd == "guildstate":
         if guild:
             with io.StringIO(
@@ -465,6 +467,9 @@ async def debug(ctx: discord.ApplicationContext, cmd: str, args: str = ""):
     elif cmd == "shutdown":
         await ctx.respond("Shutting down")
         sys.exit()
+    elif cmd == "reset":
+        if guild:
+            bot.guilds_state[guild.id] = GuildState.from_guild(guild)
     else:
         await ctx.respond("Invalid command")
 
