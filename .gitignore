@@ -1,0 +1,15 @@
+.idea/
+.mypy_cache
+
+# virtualenv
+.venv
+venv/
+ENV/
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+.env
+db.*
